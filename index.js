@@ -19,30 +19,25 @@ mongoose.connect(
   }
 );
 
+const productSchema = new mongoose.Schema({ name: String, price: Number });
+const Product = mongoose.model("Product", productSchema);
+module.exports.Product = Product;
+
 app.get("/products", async (req, res) => {
-  try {
-    const products = await produc.find();
-    res.json(products);
-  } catch {
-    res.status(500).json({ error: "there is internal server error" });
-  }
+  const products = await Product.find();
+  res.json(products);
 });
 
-app.get("/products/:id", async (req, res) => {
+app.get("/product/:id", async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
-    if (!product) {
-      return res.status(404).json({
-        message: "the items that you were searching for does not exits",
-      });
-    } else {
-      res.json(product);
-    }
-  } catch (error) {
-    res.status(500).json();
+    if (!product) return res.status(404).json({ error: "Product not found" });
+    res.json(product);
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
   }
 });
 
-app.listen(8000, () => {
-  console.log("server is running on port 8000");
+app.listen(8080, () => {
+  console.log("Server running on http://localhost:8080");
 });
