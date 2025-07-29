@@ -1,43 +1,42 @@
 const mongoose = require("mongoose");
 const express = require("express");
 const jwt = require("jsonwebtoken");
-const bcrptjs = require("bcryptjs");
+const bcrypt = require("bcryptjs");
 const router = express.Router();
 
-const user = mongoose.model(
-  "Úser",
+const User = mongoose.model(
+  "User",
   new mongoose.Schema({ email: String, password: String })
 );
 
-//sinup router
+// Signup route
 router.post("/auth/signup", async (req, res) => {
   const { email, password } = req.body;
   const existingUser = await User.findOne({ email });
   if (existingUser) {
-    return res.status(400).json({ error: "User already exits" });
+    return res.status(400).json({ error: "User already exists" });
   }
-  const hashedPassword = await bcrypt.hash({ password });
-  const user = user({ email, password: hashedPassword });
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const user = new User({ email, password: hashedPassword });
   await user.save();
-  const token = jwt.sign({ userId: user._id }, "secret", { expiriesIn: "1h" });
-  res.status(200).json({ token });
+  const token = jwt.sign({ userId: user._id }, "secret", { expiresIn: "1h" });
+  res.status(201).json({ token });
 });
 
-//login router
+// Login route
 router.post("/auth/login", async (req, res) => {
-  const { emal, password } = req.bod;
-  const user = await User.findOne({ email });
-  if (user && (await bcrypt.compare(password, user.password))) {
+  const user = await User.findOne({ email: req.body.email });
+  if (user && (await bcrypt.compare(req.body.password, user.password))) {
     const token = jwt.sign({ userId: user._id }, "secret", { expiresIn: "1h" });
-    res.status(200).json({ token });
+    res.json({ token });
   } else {
-    res.status(400).json({ error: "Ïnvalid credentials" });
+    res.status(401).json({ error: "Invalid credentials" });
   }
 });
 
-//jwt middleware
+// JWT middleware
 function authenticateJWT(req, res, next) {
-  const authHeader = req.header.authorization;
+  const authHeader = req.headers.authorization;
   if (authHeader) {
     const token = authHeader.split(" ")[1];
     jwt.verify(token, "secret", (err, user) => {
