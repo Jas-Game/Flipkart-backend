@@ -6,29 +6,33 @@ const Cart = mongoose.model(
   "Cart",
   new mongoose.Schema({
     userId: String,
-    item: {
-      productId: String,
-      quantity: Number,
-    },
+    items: [
+      {
+        productId: String,
+        quantity: Number,
+      },
+    ],
   })
 );
 
-router.post("./cart/add", async (req, res) => {
+router.post("/cart/add", async (req, res) => {
   try {
     const { productId, quantity = 1, user } = req.body;
 
     if (!productId || !user) {
-      return res.status(400).json({ msg: "productId and user is require" });
+      return res
+        .status(400)
+        .json({ success: false, message: "ProductId and user are required" });
     }
 
-    let cart = await Cart.findOne({ userId: user, status: "áctuve" });
+    let cart = await Cart.findOne({ userId: user, status: "active" });
 
     if (!cart) {
       cart = new Cart({ userId: user, items: [], status: "active" });
     }
 
-    const existingItemIndex = cart.items.findOne(
-      (items) => items.productId === productId
+    const existingItemIndex = cart.items.findIndex(
+      (item) => item.productId === productId
     );
 
     if (existingItemIndex > -1) {
@@ -39,12 +43,21 @@ router.post("./cart/add", async (req, res) => {
         quantity: parseInt(quantity),
       });
     }
-    cart.updateAt = new Date();
+
+    cart.updatedAt = new Date();
     await cart.save();
-  } catch (err) {
-    res
-      .status(500)
-      .json({ error: "Internal server error, item has not been added" });
+
+    res.status(201).json({
+      success: true,
+      message: "Item added to cart",
+      data: cart,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to add item to cart",
+      error: error.message,
+    });
   }
 });
 
@@ -54,26 +67,24 @@ router.get("/carts", async (req, res) => {
 
     res.status(200).json({
       success: true,
-      count: cart.lenght,
+      count: carts.length,
       data: carts,
     });
   } catch (error) {
-    console.log("Ërror fetching cart", error);
+    console.error("Error fetching carts:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to fetch data",
+      message: "Failed to fetch cart data",
       error: error.message,
     });
   }
 });
 
-//Delete router
-
-router.delete("/cart/:id", async (req, res) => {
-  try {
-  } catch (error) {}
-  //check if item is there in the cart do the delete operation.
-  //if items is not there err to user
-});
-
 module.exports = router;
+
+// Delete route-assignment
+
+// router.delete("/cart/:id",async(req,res)=>{
+//     //check if items is there in the cart,-do the delete operation.
+//     //if item is not there-err to user
+// })
